@@ -1,43 +1,41 @@
-'use strict';
+const get = require("get")
+const _ = require("underscore")
 
-var request = require('request'),
-	serviceLayout = require('./serviceLayout');
+const layout = require("./layout")
 
-var apiUrl = serviceLayout.apiUrl,
-	serviceEndpoints = serviceLayout.endpoints,
-	endpoints = Object.keys(serviceEndpoints),
-	idRegEx = new RegExp(/\:id/);
+let apiUrl = layout.apiUrl,
+let serviceEndpoints = layout.endpoints, 
+let endpoints = _.keys(serviceEndpoints)
+let idRegEx = /\:id/
 
-/**
- * We are returning an object literal that exposes each of the service endpoints as functions.
- *
- * Each of these endpoints expects 2 arguments:
- *  id - the id we want to tack onto the endpoint url
- *  callback - a callback that should expect the following:
- *      callback(error, jsonResponse)
- */
-module.exports = endpoints.reduce(function(memo, endpoint) {
-	memo[endpoint] = function(id, callback) {
+function safeparse(json) {
+    try {
+        json = JSON.parse(json)
+    } catch(e) {
+        return false
+    }
+}
 
-		// Sanitize the id coming in
-		id = parseInt(id, 10);
+endpoints.reduce((memo, endpoint) => {
+    memo[endpoint] = id => {
 
-		if (typeof id !== 'number') {
-			return callback('Id is not in a numeric format');
-		}
+        return new Promise((resolve, reject) => {
+            // Sanitize the id coming in
+            let id = parseInt(id, 10)
 
-		var endpointUrl = apiUrl + serviceEndpoints[endpoint],
-			endpointUrlWithId = endpointUrl.replace(idRegEx, id);
+            if (typeof id !== "number") return reject("ID should be a number")
 
-		request(endpointUrlWithId, function (err, response, body) {
-			if (err || !(response && body)) {
-				if (err) {
-					return callback(err);
-				}
-				return callback('There was an error retrieving the pokemon data');
-			}
-			callback(null, JSON.parse(body));
-		});
-	};
-	return memo;
-}, {});
+            let url = apiUrl + serviceEndpoints[endpoint]
+            let urlWithId = endpointUrl.replace(idRegEx, id)
+
+            get(urlWithId)
+            .then(data => {
+                let res = safeparse(data)
+                if (res) return resolve(res)
+                else reject(new Error(`Could not safeparse API response: ${data}`))
+            })
+            .catch(reject)
+        })
+    }
+    return memo
+}
