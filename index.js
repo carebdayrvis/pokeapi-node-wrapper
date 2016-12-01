@@ -1,10 +1,11 @@
+'use strict'
 const get = require("get")
 const _ = require("underscore")
 
-const layout = require("./layout")
+const layout = require("./layout.json")
 
-let apiUrl = layout.apiUrl,
-let serviceEndpoints = layout.endpoints, 
+let apiUrl = layout.apiUrl
+let serviceEndpoints = layout.endpoints
 let endpoints = _.keys(serviceEndpoints)
 let idRegEx = /\:id/
 
@@ -17,7 +18,7 @@ function safeparse(json) {
 }
 
 endpoints.reduce((memo, endpoint) => {
-    memo[endpoint] = id => {
+    memo[endpoint] = (id) => {
 
         return new Promise((resolve, reject) => {
             // Sanitize the id coming in
@@ -38,4 +39,4 @@ endpoints.reduce((memo, endpoint) => {
         })
     }
     return memo
-}
+})
